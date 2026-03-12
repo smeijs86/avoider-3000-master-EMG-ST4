@@ -1,9 +1,7 @@
 # -= AVOIDER 3000 =-
 
-## Avoid. AVOID? AVOIDER made to avoid. That's it!
-
 What is **Avoider 3000**? This is a retro-endless-arcade game based on space shooters from 80s arcade machines.
-The game is taken from the pygames module and only adapted for serial input.
+The game is taken from the pygames library and only adapted for serial input. The original **Avoider 3000** can be found here: https://github.com/crusty0gphr/avoider-3000
 
 The required input is:
 
