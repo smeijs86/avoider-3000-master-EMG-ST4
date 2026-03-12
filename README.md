@@ -13,7 +13,7 @@ The required input is:
 
 3 - shoot
 
-There is currently no error implemented for wrong input, it will just crash.
+Input is read line by line, so make sure each command ends with \n (newline). There is currently no error implemented for wrong input, it will just crash, when wrong input is provided.
 
 The purpose is to record and decode EMG using a microcontroller and assign output based on the decoded EMG activity, but it is possible to use any other signal.
 COM-port is hardcoded to COM9.
