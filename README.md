@@ -31,6 +31,8 @@ in terminal:
 
 Game developed using **Python 3.7.2**, adapted on **Python 3.13.11** and tested on **Python 3.13.11**
 
+The pygame library does not work with **Python 3.14** (per 12 March 2026), so ensure that your virtual environment runs **Python 3.13.11**
+
 ## Screenshots
 
 ### Main Menu
