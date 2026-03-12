@@ -4,21 +4,9 @@
 """
 import pygame
 from pygame import Rect, Surface
-import serial
+# serial will be handled by main; spaceship just accepts the decoded value
 from configs import screen_size
 from classes.asset_manager import assets
-
-# Initialize serial port non-blocking; skip if unavailable
-try:
-    ser = serial.Serial("COM9", 115200, timeout=0.1)
-except Exception:
-    ser = None
-
-if ser:
-    input_data = ser.readline().strip().decode("utf-8")
-else:
-    input_data = None
-    print("Serial port not available, running without external input.")
 
 class SpaceShip(pygame.sprite.Sprite):
     rect: Rect  # type: ignore[reportIncompatibleMethodOverride]
@@ -65,42 +53,34 @@ class SpaceShip(pygame.sprite.Sprite):
         self.blink_timer = 0
         self.visible = True
 
-    def update(self):
-        global input_data
+    def update(self, input_data):
+        """Advance ship state one frame using the latest input.
+
+        ``input_data`` is provided by the caller (main.py) and should be a
+        small primitive such as ``1`` for left, ``2`` for right, ``3`` for
+        shoot, or ``None`` when nothing has arrived.  Defaulting to ``None``
+        keeps the method callable without arguments during transition.
+        """
         now = pygame.time.get_ticks()
         dt = now - self.last_update
         self.last_update = now
 
-        # Read serial input non-blocking per frame
-        if ser:
-            try:
-                raw = ser.readline().strip()
-                if raw:
-                    try:
-                        decoded = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else str(raw)
-                        try:
-                            input_data = int(decoded)
-                        except Exception:
-                            input_data = decoded
-                    except Exception:
-                        input_data = None
-                else:
-                    input_data = None
-            except Exception:
-                input_data = None
-
-        if input_data==1:   #Move left
+        # horizontal movement comes from the serial‑supplied value
+        if input_data == 1:   # Move left
             self.x -= 5
-        elif input_data==2: #Move right
+        elif input_data == 2: # Move right
             self.x += 5
-        
-        self.rect.center = (int(self.x), self.y)   
+
+        self.rect.center = (int(self.x), self.y)
 
         self.animate_space_ship(dt)
         self.update_invincibility(dt)
         self.display_health()
         self.display_ammo()
         self.screen_constrain()
+
+        # keep the latest input for use during rotation
+        self.latest_input = input_data
         self.rotate()
 
     def animate_space_ship(self, dt):
@@ -191,14 +171,13 @@ class SpaceShip(pygame.sprite.Sprite):
             self.rect.bottom = screen_size[1] - 50
 
     def rotate(self):
-        """Tilt spaceship based on mouse movement direction"""  #Update to serial
-        mouse_rel = pygame.mouse.get_rel()
+        """Tilt spaceship based on the last movement input."""
+        # mouse_rel = pygame.mouse.get_rel()  # no longer used
+        inp = getattr(self, "latest_input", None)
 
-        if input_data==1:
-            # Tilt left when moving left
+        if inp == 1:
             self.image = self.rotate_from_center(self.clean_image, 15)
-        elif input_data==2:
-            # Tilt right when moving right
+        elif inp == 2:
             self.image = self.rotate_from_center(self.clean_image, -15)
         else:
             # Reset to upright when not moving

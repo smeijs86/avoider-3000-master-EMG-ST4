@@ -8,6 +8,14 @@ import random
 import sys
 import serial
 
+# Initialize serial port non-blocking; skip if unavailable
+try:
+    ser = serial.Serial("COM9", 115200, timeout=0.1)
+    print("Success")
+except Exception:
+    ser = None
+    print("Fail")
+
 from classes.asset_manager import assets
 from classes.background import Background
 from classes.game_state import GameState
@@ -25,7 +33,7 @@ import pygame
 
 pygame.init()
 pygame.display.set_caption(game_name)
-screen = pygame.display.set_mode(screen_size)  # Windowed mode for debugging
+screen = pygame.display.set_mode(screen_size, pygame.FULLSCREEN)
 clock = pygame.time.Clock()
 
 # Load all assets after display is initialized
@@ -92,6 +100,14 @@ def run_gameplay(score_obj):
     """Main gameplay loop logic - handle rendering, updates, and collisions"""
     pygame.mouse.set_visible(False)
 
+    # grab the current player sprite from the group instead of relying on
+    # the module‑level variable; keeps the function self‑contained and
+    # satisfies the type checker
+    player = spaceship_group.sprite  # type: ignore
+    if player is None:
+        # nothing to collide with yet
+        return
+
     # Draw and update all sprite groups
     meteor_group.draw(screen)
     meteor_group.update()
@@ -109,12 +125,12 @@ def run_gameplay(score_obj):
     slow_down_group.update()
 
     spaceship_group.draw(screen)
-    spaceship_group.update()
+    spaceship_group.update(input_data)
 
     score_obj.draw()
 
     # Check collisions with player
-    if pygame.sprite.spritecollide(player, meteor_group, True):
+    if pygame.sprite.spritecollide(player, meteor_group, True): # type: ignore
         damage = random.randrange(1, 3)
         if player.get_damage(damage):
             assets.play_sound("metal_impact")
@@ -202,7 +218,25 @@ start_background_music()
 
 # Main game loop
 while True:
+    # poll serial once at the top of each frame so event handling
+    # and gameplay logic can see the most recent value
+    #if ser:
+    #    input_data = ser.readline().strip()
+    #    input_data = int(input_data)
+        #print(f"Received input: {input_data}")
+    #else:
+    #    input_data = None
+    #    print("Serial port not available, running without external input.") 
+
     for event in pygame.event.get():
+
+        if ser:
+            input_data = ser.readline().strip()
+            input_data = int(input_data)
+            print(f"Received input: {input_data}")
+        else:
+            input_data = None
+        
         # Quit game
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -225,7 +259,7 @@ while True:
                     state.started = True
 
         # Shooting
-        if event.type == pygame.MOUSEBUTTONDOWN:    #Adjust this to serial input.
+        if input_data == 3:#event.type == pygame.MOUSEBUTTONDOWN:    #Adjust this to serial input.
             current_time = pygame.time.get_ticks()
             if player.ammo > 0 and state.can_fire(current_time):
                 assets.play_sound("laser_shot")
